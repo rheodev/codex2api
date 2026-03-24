@@ -75,6 +75,7 @@ type usageLogEntry struct {
 	InboundEndpoint  string
 	UpstreamEndpoint string
 	Stream           bool
+	CachedTokens     int
 }
 
 // New 创建数据库连接并自动建表
@@ -167,6 +168,7 @@ func (db *DB) migrate(ctx context.Context) error {
 	ALTER TABLE usage_logs ADD COLUMN IF NOT EXISTS inbound_endpoint VARCHAR(100) DEFAULT '';
 	ALTER TABLE usage_logs ADD COLUMN IF NOT EXISTS upstream_endpoint VARCHAR(100) DEFAULT '';
 	ALTER TABLE usage_logs ADD COLUMN IF NOT EXISTS stream BOOLEAN DEFAULT false;
+	ALTER TABLE usage_logs ADD COLUMN IF NOT EXISTS cached_tokens INT DEFAULT 0;
 
 	CREATE TABLE IF NOT EXISTS api_keys (
 		id         SERIAL PRIMARY KEY,
@@ -262,6 +264,7 @@ type UsageLog struct {
 	InboundEndpoint  string    `json:"inbound_endpoint"`
 	UpstreamEndpoint string    `json:"upstream_endpoint"`
 	Stream           bool      `json:"stream"`
+	CachedTokens     int       `json:"cached_tokens"`
 	CreatedAt        time.Time `json:"created_at"`
 }
 
@@ -285,6 +288,7 @@ func (db *DB) InsertUsageLog(ctx context.Context, log *UsageLogInput) error {
 		InboundEndpoint:  log.InboundEndpoint,
 		UpstreamEndpoint: log.UpstreamEndpoint,
 		Stream:           log.Stream,
+		CachedTokens:     log.CachedTokens,
 	})
 	bufLen := len(db.logBuf)
 	db.logMu.Unlock()
@@ -313,6 +317,7 @@ type UsageLogInput struct {
 	InboundEndpoint  string
 	UpstreamEndpoint string
 	Stream           bool
+	CachedTokens     int
 }
 
 // startLogFlusher 启动后台定时 flush 协程（每 3 秒一次）
@@ -355,8 +360,8 @@ func (db *DB) flushLogs() {
 
 	stmt, err := tx.PrepareContext(ctx,
 		`INSERT INTO usage_logs (account_id, endpoint, model, prompt_tokens, completion_tokens, total_tokens, status_code, duration_ms,
-		  input_tokens, output_tokens, reasoning_tokens, first_token_ms, reasoning_effort, inbound_endpoint, upstream_endpoint, stream)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`)
+		  input_tokens, output_tokens, reasoning_tokens, first_token_ms, reasoning_effort, inbound_endpoint, upstream_endpoint, stream, cached_tokens)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`)
 	if err != nil {
 		tx.Rollback()
 		log.Printf("批量写入日志失败（准备语句）: %v", err)
@@ -366,7 +371,7 @@ func (db *DB) flushLogs() {
 
 	for _, e := range batch {
 		if _, err := stmt.ExecContext(ctx, e.AccountID, e.Endpoint, e.Model, e.PromptTokens, e.CompletionTokens, e.TotalTokens, e.StatusCode, e.DurationMs,
-			e.InputTokens, e.OutputTokens, e.ReasoningTokens, e.FirstTokenMs, e.ReasoningEffort, e.InboundEndpoint, e.UpstreamEndpoint, e.Stream); err != nil {
+			e.InputTokens, e.OutputTokens, e.ReasoningTokens, e.FirstTokenMs, e.ReasoningEffort, e.InboundEndpoint, e.UpstreamEndpoint, e.Stream, e.CachedTokens); err != nil {
 			tx.Rollback()
 			log.Printf("批量写入日志失败（执行）: %v", err)
 			return
@@ -449,7 +454,7 @@ func (db *DB) ListRecentUsageLogs(ctx context.Context, limit int) ([]*UsageLog, 
 	query := `SELECT id, account_id, endpoint, model, prompt_tokens, completion_tokens, total_tokens, status_code, duration_ms,
 	            COALESCE(input_tokens, 0), COALESCE(output_tokens, 0), COALESCE(reasoning_tokens, 0),
 	            COALESCE(first_token_ms, 0), COALESCE(reasoning_effort, ''), COALESCE(inbound_endpoint, ''),
-	            COALESCE(upstream_endpoint, ''), COALESCE(stream, false), created_at
+	            COALESCE(upstream_endpoint, ''), COALESCE(stream, false), COALESCE(cached_tokens, 0), created_at
 	           FROM usage_logs ORDER BY id DESC LIMIT $1`
 	rows, err := db.conn.QueryContext(ctx, query, limit)
 	if err != nil {
@@ -461,7 +466,7 @@ func (db *DB) ListRecentUsageLogs(ctx context.Context, limit int) ([]*UsageLog, 
 	for rows.Next() {
 		l := &UsageLog{}
 		if err := rows.Scan(&l.ID, &l.AccountID, &l.Endpoint, &l.Model, &l.PromptTokens, &l.CompletionTokens, &l.TotalTokens, &l.StatusCode, &l.DurationMs,
-			&l.InputTokens, &l.OutputTokens, &l.ReasoningTokens, &l.FirstTokenMs, &l.ReasoningEffort, &l.InboundEndpoint, &l.UpstreamEndpoint, &l.Stream, &l.CreatedAt); err != nil {
+			&l.InputTokens, &l.OutputTokens, &l.ReasoningTokens, &l.FirstTokenMs, &l.ReasoningEffort, &l.InboundEndpoint, &l.UpstreamEndpoint, &l.Stream, &l.CachedTokens, &l.CreatedAt); err != nil {
 			return nil, err
 		}
 		logs = append(logs, l)

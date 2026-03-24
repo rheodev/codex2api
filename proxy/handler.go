@@ -375,6 +375,7 @@ func (h *Handler) Responses(c *gin.Context) {
 			logInput.InputTokens = usage.InputTokens
 			logInput.OutputTokens = usage.OutputTokens
 			logInput.ReasoningTokens = usage.ReasoningTokens
+			logInput.CachedTokens = usage.CachedTokens
 		}
 		h.logUsage(logInput)
 
@@ -585,6 +586,7 @@ func (h *Handler) ChatCompletions(c *gin.Context) {
 			logInput.InputTokens = usage.InputTokens
 			logInput.OutputTokens = usage.OutputTokens
 			logInput.ReasoningTokens = usage.ReasoningTokens
+			logInput.CachedTokens = usage.CachedTokens
 		}
 		h.logUsage(logInput)
 

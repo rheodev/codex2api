@@ -6,7 +6,6 @@ import StateShell from '../components/StateShell'
 import { useDataLoader } from '../hooks/useDataLoader'
 import { useToast } from '../hooks/useToast'
 import type { UsageLog, UsageStats } from '../types'
-import { formatRelativeTime } from '../utils/time'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,6 +25,23 @@ function formatTokens(value?: number | null): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
   return value.toLocaleString()
+}
+
+function formatTime(iso: string): string {
+  try {
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return '-'
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    // 如果不是今天则加上日期
+    if (d.toDateString() !== now.toDateString()) {
+      return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${time}`
+    }
+    return time
+  } catch {
+    return '-'
+  }
 }
 
 export default function Usage() {
@@ -219,30 +235,32 @@ export default function Usage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-[13px] font-semibold">状态</TableHead>
-                      <TableHead className="text-[13px] font-semibold">模型</TableHead>
-                      <TableHead className="text-[13px] font-semibold">推理强度</TableHead>
-                      <TableHead className="text-[13px] font-semibold">端点</TableHead>
-                      <TableHead className="text-[13px] font-semibold">类型</TableHead>
-                      <TableHead className="text-[13px] font-semibold">TOKEN</TableHead>
-                      <TableHead className="text-[13px] font-semibold">首字时间</TableHead>
-                      <TableHead className="text-[13px] font-semibold">总耗时</TableHead>
-                      <TableHead className="text-[13px] font-semibold">时间</TableHead>
+                      <TableHead className="text-[14px] font-semibold">状态</TableHead>
+                      <TableHead className="text-[14px] font-semibold">模型</TableHead>
+                      <TableHead className="text-[14px] font-semibold">推理强度</TableHead>
+                      <TableHead className="text-[14px] font-semibold">端点</TableHead>
+                      <TableHead className="text-[14px] font-semibold">类型</TableHead>
+                      <TableHead className="text-[14px] font-semibold">TOKEN</TableHead>
+                      <TableHead className="text-[14px] font-semibold">读取缓存</TableHead>
+                      <TableHead className="text-[14px] font-semibold">首字时间</TableHead>
+                      <TableHead className="text-[14px] font-semibold">总耗时</TableHead>
+                      <TableHead className="text-[14px] font-semibold">时间</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pagedLogs.map((log) => (
+                    {pagedLogs.map((log) => {
+                      return (
                       <TableRow key={log.id}>
                         <TableCell>
                           <Badge
                             variant={log.status_code < 400 ? 'default' : log.status_code < 500 ? 'secondary' : 'destructive'}
-                            className="text-[13px]"
+                            className="text-[14px]"
                           >
                             {log.status_code}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[13px]">
+                          <Badge variant="outline" className="text-[14px]">
                             {log.model || '-'}
                           </Badge>
                         </TableCell>
@@ -250,7 +268,7 @@ export default function Usage() {
                           {log.reasoning_effort ? (
                             <Badge
                               variant="outline"
-                              className="text-[12px]"
+                              className="text-[13px]"
                               style={{
                                 background: log.reasoning_effort === 'high' ? 'rgba(239, 68, 68, 0.12)' :
                                            log.reasoning_effort === 'medium' ? 'rgba(245, 158, 11, 0.12)' :
@@ -263,10 +281,10 @@ export default function Usage() {
                             >
                               {log.reasoning_effort}
                             </Badge>
-                          ) : <span className="text-[13px] text-muted-foreground">-</span>}
+                          ) : <span className="text-[14px] text-muted-foreground">-</span>}
                         </TableCell>
                         <TableCell>
-                          <div className="text-[13px] leading-relaxed">
+                          <div className="text-[14px] leading-relaxed">
                             <span className="font-mono text-muted-foreground">
                               {log.inbound_endpoint || log.endpoint || '-'}
                             </span>
@@ -278,7 +296,7 @@ export default function Usage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className="text-[12px]"
+                            className="text-[13px]"
                             style={{
                               background: log.stream ? 'rgba(99, 102, 241, 0.12)' : 'rgba(107, 114, 128, 0.12)',
                               color: log.stream ? '#6366f1' : '#6b7280',
@@ -290,7 +308,7 @@ export default function Usage() {
                         </TableCell>
                         <TableCell>
                           {log.status_code < 400 && (log.input_tokens > 0 || log.output_tokens > 0) ? (
-                            <div className="text-[13px] leading-relaxed">
+                            <div className="text-[14px] leading-relaxed">
                               <span className="text-blue-500">↓{formatTokens(log.input_tokens)}</span>
                               <span className="mx-1 text-border">|</span>
                               <span className="text-emerald-500">↑{formatTokens(log.output_tokens)}</span>
@@ -302,26 +320,36 @@ export default function Usage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[13px] text-muted-foreground">-</span>
+                            <span className="text-[14px] text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {log.cached_tokens > 0 ? (
+                            <Badge variant="outline" className="text-[13px] gap-1" style={{ background: 'rgba(99, 102, 241, 0.10)', color: '#6366f1', borderColor: 'transparent' }}>
+                              📦 {formatTokens(log.cached_tokens)}
+                            </Badge>
+                          ) : (
+                            <span className="text-[14px] text-muted-foreground">-</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {log.first_token_ms > 0 ? (
-                            <span className={`font-mono text-[13px] ${log.first_token_ms > 5000 ? 'text-red-500' : log.first_token_ms > 2000 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                            <span className={`font-mono text-[14px] ${log.first_token_ms > 5000 ? 'text-red-500' : log.first_token_ms > 2000 ? 'text-amber-500' : 'text-emerald-500'}`}>
                               {log.first_token_ms > 1000 ? `${(log.first_token_ms / 1000).toFixed(1)}s` : `${log.first_token_ms}ms`}
                             </span>
-                          ) : <span className="text-[13px] text-muted-foreground">-</span>}
+                          ) : <span className="text-[14px] text-muted-foreground">-</span>}
                         </TableCell>
                         <TableCell>
-                          <span className={`font-mono text-[13px] ${log.duration_ms > 30000 ? 'text-red-500' : log.duration_ms > 10000 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                          <span className={`font-mono text-[14px] ${log.duration_ms > 30000 ? 'text-red-500' : log.duration_ms > 10000 ? 'text-amber-500' : 'text-muted-foreground'}`}>
                             {log.duration_ms > 1000 ? `${(log.duration_ms / 1000).toFixed(1)}s` : `${log.duration_ms}ms`}
                           </span>
                         </TableCell>
-                        <TableCell className="text-[13px] text-muted-foreground whitespace-nowrap">
-                          {formatRelativeTime(log.created_at, { variant: 'compact', includeSeconds: true })}
+                        <TableCell className="text-[14px] font-mono text-muted-foreground whitespace-nowrap">
+                          {formatTime(log.created_at)}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>

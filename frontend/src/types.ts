@@ -85,6 +85,7 @@ export interface UsageLog {
   inbound_endpoint: string
   upstream_endpoint: string
   stream: boolean
+  cached_tokens: number
   created_at: ISODateString
 }
 

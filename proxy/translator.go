@@ -169,6 +169,7 @@ type UsageInfo struct {
 	InputTokens      int `json:"input_tokens"`
 	OutputTokens     int `json:"output_tokens"`
 	ReasoningTokens  int `json:"reasoning_tokens"`
+	CachedTokens     int `json:"cached_tokens"`
 }
 
 // extractUsage 从 response.completed 事件提取 usage
@@ -180,6 +181,7 @@ func extractUsage(eventData []byte) *UsageInfo {
 	inputTokens := int(usage.Get("input_tokens").Int())
 	outputTokens := int(usage.Get("output_tokens").Int())
 	reasoningTokens := int(usage.Get("output_tokens_details.reasoning_tokens").Int())
+	cachedTokens := int(usage.Get("input_tokens_details.cached_tokens").Int())
 	return &UsageInfo{
 		PromptTokens:     inputTokens,
 		CompletionTokens: outputTokens,
@@ -187,6 +189,7 @@ func extractUsage(eventData []byte) *UsageInfo {
 		InputTokens:      inputTokens,
 		OutputTokens:     outputTokens,
 		ReasoningTokens:  reasoningTokens,
+		CachedTokens:     cachedTokens,
 	}
 }
 
