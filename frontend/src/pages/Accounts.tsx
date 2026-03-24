@@ -43,7 +43,7 @@ export default function Accounts() {
     return data.accounts ?? []
   }, [])
 
-  const { data: accounts, loading, error, reload } = useDataLoader<AccountRow[]>({
+  const { data: accounts, loading, error, reload, reloadSilently } = useDataLoader<AccountRow[]>({
     initialData: [],
     load: loadAccounts,
   })
@@ -109,6 +109,7 @@ export default function Accounts() {
     try {
       await api.refreshAccount(account.id)
       showToast('刷新请求已发送')
+      void reloadSilently()
     } catch (error) {
       showToast(`刷新失败: ${getErrorMessage(error)}`, 'error')
     } finally {
