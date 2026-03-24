@@ -1,9 +1,7 @@
 import { useCallback, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import {
   Activity,
   AlertTriangle,
-  ArrowRight,
   BarChart3,
   Clock3,
   Cpu,
@@ -12,7 +10,6 @@ import {
   RefreshCw,
   Server,
   Users,
-  Workflow,
   Zap,
 } from 'lucide-react'
 import { api } from '../api'
@@ -76,40 +73,6 @@ export default function Operations() {
               <SummaryPill label="今日请求" value={formatNumber(overview.traffic.today_requests)} />
               <SummaryPill label="今日错误率" value={`${overview.traffic.error_rate.toFixed(1)}%`} />
             </div>
-
-            <Card className="mb-6 overflow-hidden border-primary/15 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.10),transparent_55%),linear-gradient(135deg,rgba(255,255,255,0.92),rgba(245,247,255,0.78))]">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-5 max-lg:flex-col">
-                  <div className="max-w-[720px]">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[12px] font-semibold text-primary">
-                      <Workflow className="size-3.5" />
-                      调度板块已独立
-                    </div>
-                    <h3 className="mt-4 text-[26px] font-semibold tracking-tight text-foreground">调度面板</h3>
-                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      账号健康分层、调度打分、风险账号筛选与近期 401 / 429 / Timeout 观察位，已经拆到独立界面。
-                      现在系统运维页只保留资源、连接池和流量概览，避免不同视角混在同一个页面里。
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-2 text-[12px] font-semibold text-muted-foreground">
-                      <span className="rounded-full border border-border bg-white/70 px-3 py-1">独立筛选</span>
-                      <span className="rounded-full border border-border bg-white/70 px-3 py-1">风险优先排序</span>
-                      <span className="rounded-full border border-border bg-white/70 px-3 py-1">15 秒自动刷新</span>
-                    </div>
-                  </div>
-                  <div className="flex w-full max-w-[220px] flex-col gap-3 max-lg:max-w-none max-sm:w-full">
-                    <Button asChild className="w-full">
-                      <Link to="/ops/scheduler">
-                        打开调度面板
-                        <ArrowRight className="size-4" />
-                      </Link>
-                    </Button>
-                    <span className="text-xs leading-6 text-muted-foreground">
-                      适合排查当前号池风险分布、近期异常和调度得分变化。
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             <Card>
               <CardContent className="p-6">

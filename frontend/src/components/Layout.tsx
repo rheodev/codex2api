@@ -13,8 +13,8 @@ type NavItem = {
 const navItems: NavItem[] = [
   { to: '/', label: '仪表盘', icon: <LayoutDashboard className="size-[18px]" />, end: true },
   { to: '/accounts', label: '账号管理', icon: <Users className="size-[18px]" /> },
-  { to: '/ops', label: '系统运维', icon: <Server className="size-[18px]" /> },
-  { to: '/ops/scheduler', label: '调度面板', icon: <Workflow className="size-[18px]" /> },
+  { to: '/ops', label: '系统运维', icon: <Server className="size-[18px]" />, end: true },
+  { to: '/ops/scheduler', label: '调度面板', icon: <Workflow className="size-[18px]" />, end: true },
   { to: '/usage', label: '使用统计', icon: <Activity className="size-[18px]" /> },
   { to: '/settings', label: '系统设置', icon: <Settings className="size-[18px]" /> },
 ]
