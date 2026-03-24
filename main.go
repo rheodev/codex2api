@@ -43,15 +43,7 @@ func main() {
 	defer db.Close()
 	log.Printf("PostgreSQL 连接成功: %s:%d/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
 
-	// 3. 初始化 Redis
-	tc, err := cache.New(cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB)
-	if err != nil {
-		log.Fatalf("Redis 初始化失败: %v", err)
-	}
-	defer tc.Close()
-	log.Printf("Redis 连接成功: %s", cfg.Redis.Addr)
-
-	// 4. 读取运行时的系统逻辑设置
+	// 3. 读取运行时的系统逻辑设置（需在 Redis 初始化之前，以获取 pool size）
 	sysCtx, sysCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	settings, err := db.GetSystemSettings(sysCtx)
 	sysCancel()
@@ -79,7 +71,19 @@ func main() {
 			settings.ProxyURL, settings.MaxConcurrency, settings.GlobalRPM, settings.PgMaxConns, settings.RedisPoolSize)
 	}
 
-	// 4b. 应用连接池设置
+	// 4. 初始化 Redis（使用数据库中保存的 pool size）
+	redisPoolSize := 30
+	if settings.RedisPoolSize > 0 {
+		redisPoolSize = settings.RedisPoolSize
+	}
+	tc, err := cache.New(cfg.Redis.Addr, cfg.Redis.Password, cfg.Redis.DB, redisPoolSize)
+	if err != nil {
+		log.Fatalf("Redis 初始化失败: %v", err)
+	}
+	defer tc.Close()
+	log.Printf("Redis 连接成功: %s, pool_size=%d", cfg.Redis.Addr, redisPoolSize)
+
+	// 4b. 应用 PostgreSQL 连接池设置
 	if settings.PgMaxConns > 0 {
 		db.SetMaxOpenConns(settings.PgMaxConns)
 		log.Printf("PostgreSQL 连接池: max_conns=%d", settings.PgMaxConns)
